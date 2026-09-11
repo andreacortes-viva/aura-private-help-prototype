@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura — Private Insurance Support Prototype</title>
+  <style>
+    :root{
+      --slack-purple:#4a154b;
+      --slack-purple-2:#611f69;
+      --aura:#7b3f8c;
+      --ink:#1d1c1d;
+      --muted:#616061;
+      --line:#ddd7df;
+      --soft:#f8f6f8;
+      --soft-purple:#f4eef6;
+      --mint:#ecf8f4;
+      --mint-line:#b9dfd0;
+      --mint-ink:#26624f;
+      --warn:#fff8e8;
+      --warn-line:#ead18f;
+      --danger:#fff2f2;
+      --danger-line:#e2aaaa;
+      --link:#1264a3;
+      --white:#fff;
+      --shadow:0 6px 24px rgba(30,12,32,.08);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:var(--ink);
+      background:#f5f3f6;
+    }
+    button, textarea, select{font:inherit}
+
+    .topbar{
+      height:36px;
+      padding:0 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background:#eee9f0;
+      border-bottom:1px solid #ddd6df;
+      font-size:12px;
+      color:#5f5762;
+    }
+    .topbar strong{color:#443a47}
+
+    .shell{
+      min-height:calc(100vh - 36px);
+      display:grid;
+      grid-template-columns:190px minmax(560px,1fr) 310px;
+      background:white;
+    }
+
+    /* LEFT: persistent Slack-like navigation */
+    .sidebar{
+      background:var(--slack-purple);
+      color:white;
+      padding:20px 10px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .workspace{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:0 8px 22px;
+    }
+    .workspace-logo{
+      width:34px;height:34px;border-radius:9px;
+      display:grid;place-items:center;
+      background:white;color:var(--slack-purple);
+      font-weight:900;
+    }
+    .workspace-name{font-size:20px;font-weight:800;line-height:1}
+    .workspace-sub{font-size:11px;color:#d6c6d7;margin-top:6px}
+    .section-label{
+      padding:12px 10px 7px;
+      color:#ccb9ce;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      font-weight:800;
+    }
+    .nav{
+      width:100%;border:0;background:transparent;color:white;
+      padding:10px 11px;border-radius:7px;text-align:left;
+      cursor:pointer;font-size:13px;font-weight:650;
+    }
+    .nav:hover{background:rgba(255,255,255,.08)}
+    .nav.active{background:#6b3f70;box-shadow:inset 3px 0 0 #88dcc8}
+    .nav .ico{display:inline-block;width:23px;opacity:.96}
+    .side-note{
+      margin-top:auto;
+      padding:12px 10px;
+      font-size:10px;
+      line-height:1.45;
+      color:#d7c8d9;
+      border-top:1px solid rgba(255,255,255,.12);
+    }
+
+    /* CENTER */
+    .main{
+      min-width:0;
+      border-right:1px solid var(--line);
+      background:white;
+      display:flex;
+      flex-direction:column;
+    }
+    .main-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:16px 20px;
+      border-bottom:1px solid var(--line);
+    }
+    .person{display:flex;align-items:center;gap:11px}
+    .avatar{
+      width:38px;height:38px;border-radius:10px;
+      background:var(--aura);color:#fff;
+      display:grid;place-items:center;font-weight:900;font-size:17px;
+      flex:0 0 auto;
+    }
+    .title-row{display:flex;align-items:center;gap:7px}
+    .title-row h1{font-size:19px;margin:0}
+    .app-tag{font-size:9px;font-weight:900;background:#f0e7f2;color:#6f377e;padding:3px 5px;border-radius:4px}
+    .subtitle{font-size:12px;color:var(--muted);margin-top:3px}
+    .ghost{
+      border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer
+    }
+    .ghost:hover{color:var(--slack-purple-2)}
+
+    .private-banner{
+      margin:14px 18px 0;
+      padding:11px 13px;
+      border-radius:9px;
+      background:var(--mint);
+      border:1px solid var(--mint-line);
+      color:var(--mint-ink);
+      font-size:12.5px;
+      display:flex;align-items:center;gap:9px;
+    }
+    .private-banner strong{font-weight:800}
+    .private-banner a{color:inherit;text-underline-offset:2px}
+
+    .conversation{
+      flex:1;
+      overflow:auto;
+      padding:20px 20px 28px;
+    }
+    .msg{display:flex;gap:10px;align-items:flex-start;margin-bottom:18px}
+    .msg .mini-avatar{
+      width:30px;height:30px;border-radius:8px;
+      display:grid;place-items:center;font-weight:900;font-size:13px;
+      flex:0 0 auto;
+      background:var(--aura);color:white;
+    }
+    .msg.user .mini-avatar{background:#ede7ef;color:#5d4d63}
+    .msg-body{max-width:780px}
+    .meta{font-size:11.5px;color:var(--muted);margin-bottom:6px}
+    .meta strong{font-size:13px;color:var(--ink);margin-right:7px}
+    .bubble{
+      background:#faf9fa;
+      border:1px solid #e8e2ea;
+      border-radius:12px;
+      padding:12px 14px;
+      font-size:13.5px;
+      line-height:1.52;
+    }
+    .bubble h3{font-size:14px;margin:10px 0 5px}
+    .bubble ul{margin:6px 0 0;padding-left:18px}
+    .bubble li{margin:4px 0}
+    .bubble .source{
+      margin-top:10px;padding-top:9px;border-top:1px solid #e1dbe4;
+      color:var(--muted);font-size:11.5px
+    }
+    .bubble .disclaimer{
+      margin-top:10px;
+      padding:9px 10px;
+      border-radius:8px;
+      background:#f7f3f8;
+      color:#5d5560;
+      font-size:11.5px;
+    }
+    .handoff{
+      display:flex;gap:8px;flex-wrap:wrap;margin-top:10px
+    }
+    .handoff button{
+      border:1px solid #c9bdcd;background:white;color:#524758;
+      border-radius:7px;padding:7px 10px;font-weight:700;font-size:11.5px;cursor:pointer
+    }
+
+    .composer{
+      border-top:1px solid var(--line);
+      padding:15px 18px 16px;
+      background:white;
+    }
+    .composer-label{font-size:11.5px;color:var(--muted);margin-bottom:9px}
+    .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+    .chip{
+      border:1px solid #d7cfd9;background:white;color:#514855;
+      border-radius:7px;padding:7px 9px;font-size:11.5px;cursor:pointer
+    }
+    .chip:hover{background:#fbf8fc;border-color:#b996c1}
+    .input-box{
+      border:1px solid #bdb2c2;border-radius:11px;padding:10px;
+    }
+    textarea{
+      width:100%;min-height:68px;resize:vertical;border:0;outline:none;
+      font-size:13.5px;color:var(--ink)
+    }
+    .input-foot{display:flex;align-items:end;justify-content:space-between;gap:10px}
+    .input-note{font-size:10.5px;color:var(--muted)}
+    .send{
+      border:0;background:var(--aura);color:white;border-radius:7px;
+      padding:9px 14px;font-weight:800;font-size:12px;cursor:pointer
+    }
+    .send:hover{filter:brightness(.96)}
+    .demo-note{font-size:10.5px;color:var(--muted);margin-top:8px}
+
+    /* shared channel */
+    .channel-content{padding:18px 20px 28px}
+    .channel-callout{
+      background:#f7f3f8;border:1px solid #e3dae7;border-radius:10px;
+      padding:12px 13px;font-size:12.5px;line-height:1.5;margin-bottom:16px;color:#564b5a
+    }
+    .channel-callout strong{color:var(--slack-purple-2)}
+    .channel-msg{padding:11px 0;border-bottom:1px solid #eee9ef;font-size:13px;line-height:1.45}
+    .channel-msg strong{display:block;margin-bottom:3px}
+    .mention{color:var(--link)}
+    .private-cta{
+      margin-top:18px;border:0;background:var(--aura);color:white;border-radius:8px;
+      padding:9px 12px;font-weight:800;cursor:pointer
+    }
+
+    /* RIGHT */
+    .right{
+      background:#f8f6f9;
+      padding:20px 16px;
+      overflow:auto;
+    }
+    .eyebrow{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:var(--aura)}
+    .right h2{font-size:17px;margin:7px 0 5px}
+    .right p{font-size:11.5px;line-height:1.45;color:var(--muted);margin:0}
+    .steps{margin:18px 0}
+    .step{display:grid;grid-template-columns:23px 1fr;gap:9px;margin-bottom:15px}
+    .num{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;background:#e9e1ec;color:#5c4c62;font-size:10.5px;font-weight:900}
+    .step strong{font-size:12px}
+    .step p{margin-top:3px}
+    .status{
+      background:white;border:1px solid #d9cedf;border-radius:10px;padding:13px;margin:17px 0 19px;
+    }
+    .status .label{font-size:9.5px;text-transform:uppercase;letter-spacing:.11em;color:var(--muted)}
+    .status-title{font-weight:850;font-size:13px;margin:7px 0 4px}
+    .status-body{font-size:11px;color:var(--muted);line-height:1.42}
+    .source-check{padding-top:16px;border-top:1px solid #ddd5e0}
+    .source-check h3{font-size:13px;margin:0 0 9px}
+    label{display:block;font-size:11.5px;font-weight:750;margin-bottom:5px}
+    select{width:100%;padding:8px;border:1px solid #cfc4d3;border-radius:6px;background:white;color:var(--ink);font-size:11.5px}
+    .helper{font-size:10.5px!important;margin-top:7px!important}
+    .owner{font-size:10.5px!important;margin-top:13px!important;color:#4c4450!important}
+
+    /* Modals */
+    .modal-bg{position:fixed;inset:0;background:rgba(30,16,32,.38);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+    .modal{width:min(520px,100%);background:white;border-radius:14px;padding:19px;box-shadow:var(--shadow)}
+    .modal h3{margin:0 0 8px}
+    .modal p{font-size:13px;line-height:1.55;color:#5e5662}
+    .modal button{border:0;background:var(--aura);color:white;border-radius:7px;padding:8px 12px;font-weight:800;cursor:pointer}
+
+    .hidden{display:none!important}
+
+    @media(max-width:1020px){
+      .shell{grid-template-columns:175px 1fr}
+      .right{grid-column:1/-1;border-top:1px solid var(--line)}
+    }
+    @media(max-width:730px){
+      .topbar{font-size:10.5px;padding:0 10px}
+      .shell{display:block}
+      .sidebar{position:sticky;top:0;z-index:5;display:flex;flex-direction:row;align-items:center;gap:6px;padding:8px}
+      .workspace{padding:0;margin-right:auto}
+      .workspace-sub,.section-label,.side-note{display:none}
+      .workspace-name{font-size:17px}
+      .nav{width:auto;padding:8px 9px}
+      .main{border-right:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div><strong>INTERACTIVE CONCEPT</strong> · Sample data only</div>
+    <div>Existing #safetywing + new private Aura DM · No live connection</div>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="workspace">
+        <div class="workspace-logo">V</div>
+        <div>
+          <div class="workspace-name">Viva</div>
+          <div class="workspace-sub">Workspace concept</div>
+        </div>
+      </div>
+
+      <div class="section-label">Channels</div>
+      <button class="nav" id="channelBtn"><span class="ico">#</span> safetywing</button>
+
+      <div class="section-label">Apps / Direct messages</div>
+      <button class="nav active" id="dmBtn"><span class="ico">A</span> Aura</button>
+
+      <div class="side-note">
+        The shared channel remains available for general questions and browsing existing answers. Aura DM adds a confidential path for personal questions.
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="dmView">
+        <header class="main-header">
+          <div class="person">
+            <div class="avatar">A</div>
+            <div>
+              <div class="title-row"><h1>Aura</h1><span class="app-tag">APP</span></div>
+              <div class="subtitle">Direct message · Insurance support</div>
+            </div>
+          </div>
+          <button class="ghost" id="resetBtn">Reset demo</button>
+        </header>
+
+        <div class="private-banner">
+          <span>🔒</span>
+          <span><strong>Private path:</strong> this question is not posted to <strong>#safetywing</strong>. <a href="#" id="privacyLink">What does that mean?</a></span>
+        </div>
+
+        <div class="conversation" id="conversation">
+          <div class="msg aura">
+            <div class="mini-avatar">A</div>
+            <div class="msg-body">
+              <div class="meta"><strong>Aura</strong> Demo automation</div>
+              <div class="bubble">
+                Hi! You can ask the same insurance questions you would normally ask in <strong>#safetywing</strong>, but here the conversation stays in a direct-message experience.
+                <br><br>
+                Try one of the sample questions below. If I have a current approved source, I’ll answer and show what I used. If I don’t, I’ll say so instead of guessing.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer">
+          <div class="composer-label">Try a sample question</div>
+          <div class="chips">
+            <button class="chip" data-q="Do I have dental coverage with SafetyWing? And if yes, what's covered?">Dental coverage</button>
+            <button class="chip" data-q="Are wisdom tooth extractions covered?">Wisdom tooth extraction</button>
+            <button class="chip" data-q="What documents do I need for a dental claim?">Dental claim documents</button>
+            <button class="chip" data-q="Is a treatment covered if it is not listed in the approved FAQ?">Coverage not in source</button>
+          </div>
+
+          <div class="input-box">
+            <textarea id="questionInput" placeholder="Ask a general insurance question..."></textarea>
+            <div class="input-foot">
+              <div class="input-note">Use fictional details. Do not enter medical records.</div>
+              <button class="send" id="askBtn">Ask Aura</button>
+            </div>
+          </div>
+          <div class="demo-note">Demo answers are selected locally by rules. Nothing is sent to Viva, Slack, SafetyWing, or an AI service.</div>
+        </div>
+      </section>
+
+      <section id="channelView" class="hidden">
+        <header class="main-header">
+          <div>
+            <div class="title-row"><h1># safetywing</h1></div>
+            <div class="subtitle">Shared channel · Existing public path</div>
+          </div>
+          <button class="ghost" id="goDMTop">Message Aura privately →</button>
+        </header>
+
+        <div class="channel-content">
+          <div class="channel-callout">
+            <strong>#safetywing does not go away.</strong> It remains useful for general questions, searchable answers, and information employees are comfortable asking publicly. The new Aura DM simply adds a confidential option for personal questions.
+          </div>
+
+          <div class="channel-msg"><strong>Maryfer Pérez · 7:20 AM</strong><span class="mention">@Aura</span> do I need to get approval for a nutritionist?</div>
+          <div class="channel-msg"><strong>Bessy Habich · 7:22 AM</strong><span class="mention">@Aura</span> do I need pre-approval to visit the endocrinologist?</div>
+          <div class="channel-msg"><strong>Maykell Lopez · 3:29 PM</strong><span class="mention">@Aura</span> do I have dental coverage with SafetyWing? And if yes, what's covered?</div>
+          <div class="channel-msg"><strong>Coralia Mejia · 1:44 PM</strong><span class="mention">@Aura</span> how can I find out how much of my prescription-glasses budget is left?</div>
+
+          <button class="private-cta" id="goDMBtn">Try the same question in Aura DM →</button>
+        </div>
+      </section>
+    </main>
+
+    <aside class="right">
+      <div class="eyebrow">Behind the demo</div>
+      <h2>How Aura decides what to do</h2>
+      <p>The private experience changes where the question is asked — not the accuracy standard.</p>
+
+      <div class="steps">
+        <div class="step"><div class="num">1</div><div><strong>Receive the question privately</strong><p>No public post is created in #safetywing.</p></div></div>
+        <div class="step"><div class="num">2</div><div><strong>Check an approved source</strong><p>Use current reviewed information only.</p></div></div>
+        <div class="step"><div class="num">3</div><div><strong>Answer or hand off</strong><p>If the source is missing or expired, Aura does not guess.</p></div></div>
+      </div>
+
+      <div class="status">
+        <div class="label">Last action</div>
+        <div class="status-title" id="statusTitle">Ready for a question</div>
+        <div class="status-body" id="statusBody">Try one of the scenarios to see the routing decision.</div>
+      </div>
+
+      <div class="source-check">
+        <h3>Test the source guardrail</h3>
+        <label for="sourceSelect">Demo source state</label>
+        <select id="sourceSelect">
+          <option value="reviewed">Reviewed / current</option>
+          <option value="missing">Missing</option>
+          <option value="expired">Expired</option>
+        </select>
+        <p class="helper">This setting applies to the next question and lets you test the same accuracy rule under different source conditions.</p>
+        <p class="owner"><strong>Proposed content owner:</strong> Viva People Ops / Benefits<br><strong>Technical owner:</strong> Aura maintainer</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="modal-bg" id="privacyModal">
+    <div class="modal">
+      <h3>What “private” means in this concept</h3>
+      <p>The employee sends the question directly to Aura instead of posting it in #safetywing. The shared channel still exists; the DM is an additional path. In a real implementation, Viva would still need to define permissions, retention, audit access, and escalation rules.</p>
+      <button id="closePrivacy">Got it</button>
+    </div>
+  </div>
+
+  <script>
+    const conversation = document.getElementById('conversation');
+    const introHTML = conversation.innerHTML;
+    const questionInput = document.getElementById('questionInput');
+    const sourceSelect = document.getElementById('sourceSelect');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusBody = document.getElementById('statusBody');
+
+    const rules = [
+      {
+        match: /(dental coverage|what's covered|what is covered|dental)/i,
+        type: 'dental',
+        html: `
+          <div>Yes — in the current Aura example, dental coverage is available through SafetyWing.</div>
+          <h3>Dental coverage details</h3>
+          <ul>
+            <li><strong>Annual limit:</strong> $1,500 per policy year.</li>
+            <li><strong>Preventive care:</strong> cleanings, fluoride treatments, sealants, and X-rays.</li>
+            <li><strong>Basic treatment:</strong> crowns, extractions, root canals, fillings, and scaling.</li>
+            <li><strong>Major treatment:</strong> osseous surgery, implants, dentures, and pontics.</li>
+            <li><strong>Wisdom tooth extractions:</strong> covered up to $1,500 per policy year.</li>
+            <li><strong>Emergency dental:</strong> 100% UCR for treatment within the first 180 days of a covered accident.</li>
+            <li><strong>Exclusion:</strong> orthodontia / braces are not covered under the dental benefit.</li>
+          </ul>
+          <div class="disclaimer">💡 This guidance is based on the approved SafetyWing policy information used by Aura. For a specific case, verify directly with SafetyWing.</div>`,
+        source: 'SafetyWing policy information · Dental coverage (Aura reference)'
+      },
+      {
+        match: /(wisdom|tooth extraction|wisdom tooth)/i,
+        type:'wisdom',
+        html:`
+          <div>Yes. Based on the current Aura reference, <strong>wisdom tooth extractions are covered up to $1,500 per policy year</strong>.</div>
+          <br>
+          <div>Because coverage can depend on the specific treatment and claim circumstances, the employee should still verify the case with SafetyWing before relying on reimbursement.</div>
+          <div class="disclaimer">💡 Aura can explain the documented benefit, but it should not guarantee reimbursement for an individual claim.</div>`,
+        source:'SafetyWing policy information · Dental coverage (Aura reference)'
+      },
+      {
+        match: /(documents|documentation|claim|proof of payment|invoice|doctor's note)/i,
+        type:'claim',
+        html:`
+          <div>For a dental claim, the current Aura reference lists the following documentation:</div>
+          <ul>
+            <li><strong>Doctor's note:</strong> diagnosis, date, and member name.</li>
+            <li><strong>Proof of payment:</strong> receipt or bank statement showing payment.</li>
+            <li><strong>Itemized invoice:</strong> detailed bill of services received.</li>
+            <li>SafetyWing may request additional documentation.</li>
+          </ul>
+          <div class="disclaimer">💡 For a specific claim, verify the latest requirements directly with SafetyWing.</div>`,
+        source:'SafetyWing policy information · Claim documentation (Aura reference)'
+      }
+    ];
+
+    function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+
+    function addUser(text){
+      const el=document.createElement('div');
+      el.className='msg user';
+      el.innerHTML=`<div class="mini-avatar">Y</div><div class="msg-body"><div class="meta"><strong>You</strong> ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div><div class="bubble">${esc(text)}</div></div>`;
+      conversation.appendChild(el);
+      conversation.scrollTop=conversation.scrollHeight;
+    }
+
+    function addAuraHTML(html, source=null, handoff=false){
+      const el=document.createElement('div');
+      el.className='msg aura';
+      el.innerHTML=`<div class="mini-avatar">A</div><div class="msg-body"><div class="meta"><strong>Aura</strong> ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div><div class="bubble">${html}${source?`<div class="source">📄 Source: ${esc(source)}</div>`:''}${handoff?`<div class="handoff"><button>Contact Benefits</button><button>Contact SafetyWing</button></div>`:''}</div></div>`;
+      conversation.appendChild(el);
+      conversation.scrollTop=conversation.scrollHeight;
+    }
+
+    function route(q){
+      addUser(q);
+      const sourceState=sourceSelect.value;
+
+      if(sourceState==='missing'){
+        setTimeout(()=>{
+          addAuraHTML(`I can’t confirm this from an approved source right now. I won’t infer coverage or invent an answer. The safer next step is a handoff to Benefits or SafetyWing.`,null,true);
+          statusTitle.textContent='Handoff offered';
+          statusBody.textContent='The approved source was missing, so Aura did not answer the policy question.';
+        },300);
+        return;
+      }
+
+      if(sourceState==='expired'){
+        setTimeout(()=>{
+          addAuraHTML(`I found information related to this question, but the source is marked as expired. I won’t use outdated information to answer a benefits question. I would flag it for review and offer a handoff.`,`Expired demo source`,true);
+          statusTitle.textContent='Expired source blocked';
+          statusBody.textContent='Aura refused to rely on outdated information and routed the employee to a human.';
+        },300);
+        return;
+      }
+
+      const rule=rules.find(r=>r.match.test(q));
+      setTimeout(()=>{
+        if(rule){
+          addAuraHTML(rule.html, rule.source, false);
+          statusTitle.textContent='Answered from a reviewed source';
+          statusBody.textContent='Aura found a current approved reference and showed the basis for the answer.';
+        }else{
+          addAuraHTML(`I don’t have a reviewed source that clearly answers this question. I won’t guess about coverage. I can help route you to Benefits or SafetyWing instead.`,null,true);
+          statusTitle.textContent='Coverage gap acknowledged';
+          statusBody.textContent='No reliable match was found, so Aura avoided guessing.';
+        }
+      },300);
+    }
+
+    function submit(){
+      const q=questionInput.value.trim();
+      if(!q)return;
+      questionInput.value='';
+      route(q);
+    }
+
+    document.getElementById('askBtn').addEventListener('click',submit);
+    questionInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit();}});
+    document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{questionInput.value=c.dataset.q;questionInput.focus();}));
+
+    document.getElementById('resetBtn').addEventListener('click',()=>{
+      conversation.innerHTML=introHTML;
+      questionInput.value='';
+      sourceSelect.value='reviewed';
+      statusTitle.textContent='Ready for a question';
+      statusBody.textContent='Try one of the scenarios to see the routing decision.';
+    });
+
+    const dmView=document.getElementById('dmView');
+    const channelView=document.getElementById('channelView');
+    const dmBtn=document.getElementById('dmBtn');
+    const channelBtn=document.getElementById('channelBtn');
+    function showDM(){dmView.classList.remove('hidden');channelView.classList.add('hidden');dmBtn.classList.add('active');channelBtn.classList.remove('active');}
+    function showChannel(){channelView.classList.remove('hidden');dmView.classList.add('hidden');channelBtn.classList.add('active');dmBtn.classList.remove('active');}
+    dmBtn.addEventListener('click',showDM);
+    channelBtn.addEventListener('click',showChannel);
+    document.getElementById('goDMBtn').addEventListener('click',showDM);
+    document.getElementById('goDMTop').addEventListener('click',showDM);
+
+    const privacyModal=document.getElementById('privacyModal');
+    document.getElementById('privacyLink').addEventListener('click',e=>{e.preventDefault();privacyModal.style.display='flex';});
+    document.getElementById('closePrivacy').addEventListener('click',()=>privacyModal.style.display='none');
+    privacyModal.addEventListener('click',e=>{if(e.target===privacyModal)privacyModal.style.display='none';});
+  </script>
+</body>
+</html>
